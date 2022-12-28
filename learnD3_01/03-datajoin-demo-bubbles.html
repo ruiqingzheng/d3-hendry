@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Scatter-Simple</title>
+  </head>
+  <body style="text-align: center">
+    <svg width="1650" height="920" id="mainsvg" class="svgs" style="background-color: #ffffff"></svg>
+
+    <script src="./d3@7.js"></script>
+    <script>
+      /***
+       * 
+       * 	1. 获取数据, 并整理数据
+          2. 用整理好的数据画出坐标轴 , renderinit 方法
+          3. setInterval 调用 renderUpdate 方法,  renderUpdate 方法中
+              对mainSvg 使用dataJoin 来画circle
+              设置circle 属性, 并设置circle动画
+      */
+
+      var color = {
+        武汉: "#ff1c12",
+        黄石: "#de5991",
+        十堰: "#759AA0",
+        荆州: "#E69D87",
+        宜昌: "#be3259",
+        襄阳: "#EA7E53",
+        鄂州: "#EEDD78",
+        荆门: "#9359b1",
+        孝感: "#47c0d4",
+        黄冈: "#F49F42",
+        咸宁: "#AA312C",
+        恩施州: "#B35E45",
+        随州: "#4B8E6F",
+        仙桃: "#ff8603",
+        天门: "#ffde1d",
+        潜江: "#1e9d95",
+        神农架: "#7289AB",
+      };
+
+      let svg = d3.select("#mainsvg");
+      let xValue = (d) => Math.log(d["确诊人数"] + 1);
+      let yValue = (d) => Math.log(d["新增确诊"] + 1);
+      let xScale;
+      let yScale;
+
+      d3.csv("./static/data/hubeinxt.csv").then((data) => {
+        // 整理数据
+        // console.log("data:", data);
+        let _data = data.filter((d) => d["地区"] !== "总计");
+        // 转数字还有负数为 0
+        _data.forEach((d) => {
+          d["确诊人数"] = +d["确诊人数"];
+          d["新增确诊"] = +d["新增确诊"];
+          if (d["新增确诊"] < 0) {
+            d["新增确诊"] = 0;
+          }
+        });
+
+        // 获取日期数组
+        let dates = Array.from(new Set(data.map((d) => d["日期"])));
+
+        dates.sort((a, b) => {
+          return new Date(a) - new Date(b);
+        });
+
+        // 按日期重新组装数据
+        // 原本数据:
+        // 2020/1/29,十堰,119,0,0,31,0,0,119,0.352272727
+        // 2020/1/27,天门,23,0,2,10,0,2,21,0.769230769
+        // 新数据 是二维数组
+        /* 
+        [[
+          {2020/1/29,十堰,119,0,0,31,0,0,119,0.352272727}, 
+          {2020/1/29,天门,44,0,3,10,0,0,41,0.322580645}
+        ],] 
+         
+         */
+        const dataForChart = [];
+        dates.forEach((d, index) => {
+          dataForChart[index] = [];
+        });
+
+        _data.forEach((d) => {
+          // const index = dates.findIndex((_date) => _date === d["日期"]);
+          const index = dates.indexOf(d["日期"]);
+          dataForChart[index].push(d);
+        });
+
+        // console.log('dataForChart', dataForChart)
+        // 画坐标
+
+        renderInit(_data);
+
+        // update 动画
+        let _index = 0;
+        const interval = setInterval(() => {
+          if (_index >= dataForChart.length - 1) {
+            return clearInterval(interval);
+          }
+          renderUpdate(dataForChart[_index]);
+          _index++;
+        }, 1000);
+      });
+
+      // 每次 update 传递 seq 来重新画图更新图表
+      function renderUpdate(seq) {
+        console.log("seq", seq);
+        // 选择 maingroup , 也就是坐标所在的容器
+        const g = d3.select("#maingroup");
+
+        // dataJoin 来画出 circle
+        // 针对地区来画出 circle
+        let circleUpdates = g.selectAll("circle").data(seq, (d) => d["地区"]);
+
+        // 如果地区不存在, 则是 enter 阶段画出 circle
+        // enter 阶段只会在地区不存在的时候首次执行, 
+        // 当接受到后面的数据是相同地区的时候, 则不会执行 enter
+        // 而是执行后面的 merge 以后的 update
+        // 这也就是为什么需要调用 merge 方法, 
+        // merge 后面的代码就是 dataJoin update 阶段需要执行的更新代码
+        const circleEnter = circleUpdates
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => xScale(xValue(d)))
+          .attr("cy", (d) => yScale(yValue(d)))
+          .attr("r", 10)
+          .attr("fill", (d) => color[d["地区"]])
+          .attr("opacity", 0.8);
+
+        // 如果地区存在那么就是 update 阶段则执行transition 动画
+        circleUpdates
+          .merge(circleEnter)
+          .transition()
+          .ease(d3.easeLinear)
+          .duration(1000)
+          .attr("cx", (d) => xScale(xValue(d)))
+          .attr("cy", (d) => yScale(yValue(d)));
+      }
+
+      function renderInit(_data) {
+        // 设置 margin , 并定位坐标轴
+
+        const margin = { top: 60, left: 150, bottom: 60, right: 60 };
+        const width = d3.select("#mainsvg").attr("width");
+        const height = d3.select("#mainsvg").attr("height");
+        const innerHeight = height - margin.top - margin.bottom;
+        const innerWidth = width - margin.left - margin.right;
+
+        // 定义 scale
+        // x 轴是确诊人数
+        xScale = d3
+          .scaleLinear()
+          .domain([d3.min(_data, xValue), d3.max(_data, xValue)])
+          .range([0, innerWidth])
+          .nice();
+
+        // y 轴新增确诊, y轴如果需要从低到高是从小到大排列的话, 需要 reverse 数据
+        yScale = d3
+          // .scaleBand()
+          .scaleLinear()
+          .domain([d3.min(_data, yValue), d3.max(_data, yValue)].reverse())
+          // .domain(d3.extent(_data, yValue))
+          .range([0, innerHeight])
+          .nice();
+
+        // 添加并定位 g 容器
+
+        const g = svg
+          .append("g")
+          .attr("id", "maingroup")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("transform", `translate(${margin.left} , ${margin.top})`);
+
+        // 生成 axis
+        const xAxis = d3.axisBottom(xScale);
+
+        const yAxis = d3.axisLeft(yScale);
+
+        // 画出 axis
+
+        g.append("g").call(xAxis).attr("transform", `translate(${0}, ${innerHeight})`);
+        g.append("g").call(yAxis);
+      }
+    </script>
+  </body>
+</html>

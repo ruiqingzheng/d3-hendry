@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SunBurst</title>
+    <script src="./static/js/d3.min.js"></script>
+  </head>
+  <body>
+    <svg width="1600" height="940" id="mainsvg" class="svgs" style="display: block; margin: auto"></svg>
+    <script>
+      const svg = d3.select("#mainsvg");
+      // 定位
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const margin = { left: 50, top: 50, right: 50, bottom: 50 };
+      const innerHeight = height - margin.top - margin.bottom;
+      const innerWidth = width - margin.left - margin.right;
+
+      // [x] 需要画圆形, 所以, 把 g 定位到中间, 后面的图元, 扇形都是以中心点为起始点
+      const g = svg
+        .append("g")
+        .attr("id", "maingroup")
+        .attr("transform", `translate(${innerWidth / 2}, ${innerHeight / 2})`);
+
+      // [x] 2. 弧度 generator 方法, 根据 partition 对 data 进行计算输出的值, 就可以画出弧形
+      // 扇形的内外弧度是一样的, 但是半径不同
+      const arc = d3
+        .arc()
+        .startAngle((d) => d.x0)
+        .endAngle((d) => d.x1)
+        .innerRadius((d) => d.y0)
+        .outerRadius((d) => d.y1)
+        // pad distances equal to padAngle * padRadius;
+        .padAngle((d) => Math.min((d.x1 - d.x0) / 2, 0.005)); // 扇形之间的间距
+
+      // 读取并整理层级数据
+      d3.json("./static/data/games.json").then((data) => {
+        // [x] 1. 设置宽度为 2Pi, 则计算出来的数据是弧度, 可以用来画出扇形
+        const generator = d3.partition().size([2 * Math.PI, height / 1.6]);
+        const _data = d3
+          .hierarchy(data)
+          .sum((d) => d.popularity)
+          .sort((x, y) => x.popularity - y.popularity);
+
+        generator(_data);
+        console.log("_data", _data);
+
+        render(_data);
+      });
+
+      function render(data) {
+        // 获取系统配色
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+        const fill = (d) => {
+          while (d.depth > 1) d = d.parent;
+          return color(d.data.name);
+        };
+
+        // dataJoin 结合 path 画出扇形 (arc 方法返回的就是 path d)
+        g.selectAll(".dataPath")
+          .data(data.descendants())
+          .join("path")
+          .attr("class", "dataPath")
+          .attr("fill", fill)
+          .attr("d", arc);
+
+        // 输出文字到扇形中
+        // [x] 文字默认是水平轴 , 而 arc 画出的扇形是从 y 轴 0 度开始的, 所以需要对所有的文字逆时针转 90 度
+
+        g.selectAll(".dataText")
+          .data(data.descendants())
+          .join("text")
+          .attr("class", "dataText")
+          .attr("text-anchor", "middle")
+          .attr("transform", (d) => {
+            // 1. 根据 d3 计算出来的原本的角度, 计算出文本原本的以水平轴开始的角度
+            // 2. 水平轴为准的角度 -90 则是和扇形一致的角度
+            // 3. 还需要定位距离圆心的距离, 它和扇形的 y 值是一致的, 就是说扇形的半径差越大我们需要平移的越多
+            // 所以计算 y 的值的中点, 把这个值作为水平移动的x值
+
+            let textAngle = (((d.x0 + d.x1) / 2) * 180) / Math.PI;
+            let moveY = (d.y0 + d.y1) / 2;
+
+            return `rotate(${textAngle - 90}) translate(${moveY}, 0) rotate(${
+              textAngle < 180 ? 0 : 180
+            }) translate(0, 5) `;
+
+            // return `rotate(${textAngle - 90}) translate(${moveY}, 0) `;
+          })
+          // .text((d) => d.data.name);
+          .text((d) => `${d.data.name} -- ${d.data.popularity ? d.data.popularity : d.value}`)
+          .attr('font-size', '0.8rem')
+      }
+    </script>
+  </body>
+</html>

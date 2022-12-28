@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h3>参考: https://observablehq.com/@d3/d3-line</h3>
+    <script src="./d3.v7.min.js"></script>
+    <script>
+      const data = [
+        { x: 10, y: 20 },
+        { x: 40, y: 60 },
+        { x: 50, y: 70 },
+      ]
+
+      const svg = d3.select('body').append('svg').attr('width', 900).attr('height', 900)
+      const margin = { top: 50, left: 50, right: 50, bottom: 50 }
+      const width = svg.attr('width')
+      const height = svg.attr('height')
+      const innerWidth = width - margin.left - margin.right
+      const innerHeight = height - margin.top - margin.bottom
+      console.log('width :>> ', width, innerWidth, height, innerHeight)
+
+      const g = svg.append('g').attr('width', innerWidth).attr('height', innerHeight).attr('transform', `translate(${margin.left}, ${margin.top})`)
+
+      const line = d3
+        .line()
+        .x((d) => d.x)
+        .y((d) => d.y)
+
+      const p = line(data)
+
+      g.append('path').attr("d", p).attr('fill', 'none').attr('stroke', '#fff000').attr('stroke-width', 10)
+    </script>
+  </body>
+</html>

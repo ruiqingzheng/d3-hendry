@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>04-linePathChart</title>
+    <link rel="stylesheet" href="./static/css/earth.css" />
+    <link rel="stylesheet" href="./static/css/d3tip.css" />
+  </head>
+  <html style="text-align: center">
+    <body>
+      <svg width="1650" height="920" id="mainsvg" class="svgs" style="background-color: #ffffff"></svg>
+
+      <!-- <script src="./d3@7.js"></script> -->
+      <script src="./static/js/d3.min.js"></script>
+      <script src="./static/js/topojson.js"></script>
+      <script src="./static/js/d3-tip.js"></script>
+      <script>
+        // 初始化图表容器
+        const svg = d3.select("#mainsvg");
+
+        // margin 计算 maingroup 绘制区域
+        const margin = { left: 60, top: 60, right: 60, bottom: 60 };
+        const innerWidth = svg.attr("width") - margin.left - margin.right;
+        const innerHeight = svg.attr("height") - margin.top - margin.bottom;
+
+        const lastTipName = null;
+
+        // maingroup
+        const g = svg
+          .append("g")
+          .attr("id", "maingroup")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        // setting up the tip tool;
+        const tip = d3
+          .tip()
+          .attr("class", "d3-tip")
+          .html(function (d) {
+            return d.properties.name;
+          });
+        svg.call(tip);
+        // const tip = d3
+        //   .tip()
+        //   .attr("class", "d3-tip")
+        //   .html(function (d) {
+        //     return d.properties.name;
+        //   });
+
+        // svg.call(tip);
+
+        // convert dataPath to svgPath;
+        // go to https://github.com/d3/d3-geo for more different projections;
+        // 该方法将读取 dataJoin 传递过来的参数,
+        // 该方法执行后返回的是 path
+        const projection = d3.geoNaturalEarth1();
+        const pathGenerator = d3.geoPath().projection(projection);
+
+        d3.json("./static/data/countries-110m.json").then((data) => {
+          const worldMeta = topojson.feature(data, data.objects.countries);
+          console.log("worldMeta", worldMeta);
+
+          //  让地图铺满容器区域
+          projection.fitSize([innerWidth, innerHeight], worldMeta);
+
+          // data join 将我们读取的 geoJson 数据传递给 d3.geoPath 的 projection 方法执行后得到 path
+          // 并绘制该 path
+          g.selectAll("path")
+            .data(worldMeta.features)
+            .enter()
+            .append("path")
+            .attr("d", pathGenerator)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+            .on("mouseover", function (d) {
+              d3.select(this).attr("opacity", 0.8).attr("stroke", "orange").attr("stroke-width", 2);
+            })
+            .on("mouseout", function (d) {
+              d3.select(this).attr("opacity", 1).attr("stroke", "black").attr("stroke-width", 1);
+            })
+            .on("contextmenu", function (d) {
+              d3.event.preventDefault(); // 阻止浏览器默认的右键
+              if (lastTipName !== d.properties.name) {
+                tip.show(d);
+              } else {
+                tip.hide();
+              }
+            });
+        });
+      </script>
+    </body>
+  </html>
+</html>

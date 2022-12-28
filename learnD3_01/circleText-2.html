@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>circleText</title>
+	</head>
+	<body>
+		<svg
+			width="1200"
+			height="800"
+			id="mainsvg"
+			version="1.1"
+			xmlns="http://www.w3.org/2000/svg"
+			xmlns:xlink="http://www.w3.org/1999/xlink"
+		></svg>
+		<script src="./d3@7.js"></script>
+		<script>
+			const svg = d3.select("#mainsvg")
+			const height = svg.attr("height")
+			const width = svg.attr("width")
+			const margin = { top: 50, left: 50, right: 50, bottom: 50 }
+			const innerHeight = height - margin.top - margin.bottom
+			const innerWidth = width - margin.left - margin.right
+
+			const data = [
+				{ text: 1, value: 1 },
+				{ text: 2, value: 2 },
+				{ text: 3, value: 3 },
+			]
+
+			// container
+			const g = svg
+				.append("g")
+				.attr("width", innerWidth)
+				.attr("height", innerHeight)
+				.attr("transform", `translate(${margin.left}, ${margin.top})`)
+
+			// [x] text 不能直接添加到 g 图形, 只能添加到container 再定位到图形内部, 这样的确有点不方便, 能否让图形和文字成为整体呢?
+			// [x] 使用 a 标签, 就可以让a成为图形和文字的容器, 这样图文就是个整体了
+			const node = svg.append("g").selectAll("a").data(data).join("a")
+			// g.append("a").attr("transform", `translate(${innerWidth / 2}, ${innerHeight / 2})`)
+
+			node.append("circle").attr("r", 50).attr("fill", "green")
+
+			node.append("text")
+				.attr("text-anchor", "middle")
+				.attr("fill", "white")
+				.text((d) => d.text + "hello")
+
+			const random = Math.random()
+
+			node.transition()
+				.duration(3000)
+				.attr(
+					"transform",
+					(d) => ` translate(${innerWidth * d.value * random}, ${innerHeight * d.value * random})`
+				)
+		</script>
+	</body>
+</html>

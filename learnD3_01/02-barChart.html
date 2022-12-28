@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <svg width="1000" height="800" id="mainsvg" class="svgs"></svg>
+
+    <!-- <script src="./d3@7.js"></script> -->
+    <script src="./d3@7.js"></script>
+
+    <script>
+      const data = [
+        { name: "Shao-Kui", value: 6 },
+        { name: "Wen-Yang", value: 6 },
+        { name: "Cai Yun", value: 16 },
+        { name: "Liang Yuan", value: 10 },
+        { name: "Yuan-Chen", value: 6 },
+        { name: "Rui-Long", value: 10 },
+        { name: "Dong Xin", value: 12 },
+        { name: "He Yu", value: 20 },
+        { name: "Xiang-Li", value: 12 },
+        { name: "Godness", value: 20 },
+        { name: "Wei-Yu", value: 15 },
+        { name: "Chen Zheng", value: 14 },
+        { name: "Yu Peng", value: 15 },
+        { name: "Li Jian", value: 18 },
+      ];
+
+      // // 定位, 设置定位对象, 获取坐标轴的高和宽
+
+      const svg = d3.select("#mainsvg");
+      const height = svg.attr("height");
+      const width = svg.attr("width");
+      const margin = { top: 60, bottom: 60, right: 30, left: 150 };
+      // 坐标轴的宽和高
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+
+      // // 定义坐标轴scale方法
+
+      const xScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(data, (d) => d.value)])
+        .range([0, innerWidth]);
+
+      const yScale = d3
+        .scaleBand()
+        .domain(data.map((d) => d.name))
+        .range([0, innerHeight])
+        .padding(0.1); //  定义 padding 也是在 scale 中定义, 而不是在 axis 中定义
+
+      // // 添加 g 整个坐标轴容器 , 坐标轴就是添加在svg的g标签下, 所以还需要对g 进行transform定位
+      const g = svg.append("g").attr("id", "maingroup").attr("transform", `translate(${margin.left} ,${margin.top})`);
+
+      // // 添加 g 作为x坐标轴容器 g.call 加入坐标轴,
+      const xAxis = d3.axisBottom(xScale);
+      g.append("g").call(xAxis).attr("transform", `translate(0 , ${innerHeight})`);
+
+      const yAxis = d3.axisLeft(yScale);
+      g.append("g").call(yAxis);
+
+      // 遍历 data , 传值给 scale 方法, 在 g 中画柱状图
+      // 原理就是遍历 data 的时候,  g.append 是按次序添加到 g
+      // 注意 y 的定位是 yScale(d.name) 调用得到的
+
+      data.forEach((d) => {
+        g.append("rect")
+          .attr("width", xScale(d.value))
+          .attr("height", yScale.bandwidth())
+          .attr("fill", "green")
+          .attr("y", yScale(d.name));
+      });
+
+      // 设置坐标轴文字大小
+      d3.selectAll(".tick text").attr("font-size", "1.3rem");
+
+      // 添加标题 , 先添加文字, 再改变位置
+      g.append("text")
+        .text("hendry-123")
+        .attr("font-size", "1.6rem")
+        .attr("transform", `translate(${innerWidth / 2}, ${0})`)
+        .attr('text-anchor', 'middle')
+    </script>
+  </body>
+</html>

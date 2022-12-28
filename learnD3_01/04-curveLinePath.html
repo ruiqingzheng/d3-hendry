@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>04-linePathChart</title>
+  </head>
+  <html style="text-align: center">
+    <body>
+      <svg width="1650" height="920" id="mainsvg" class="svgs" style="background-color: #ffffff"></svg>
+      <script src="./d3@7.js"></script>
+      <script>
+        const svg = d3.select("#mainsvg");
+        const width = svg.attr("width");
+        const height = svg.attr("height");
+        const margin = { top: 60, right: 30, bottom: 60, left: 200 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const g = svg.append("g").attr("id", "maingroup").attr("transform", `translate(${margin.left}, ${margin.top})`);
+        let xValue = (d) => d["日期"];
+        // let yValue = (d) => Math.log(d["现有确诊"] + 1);
+        let yValue = (d) => d["现有确诊"];
+        let xScale = null;
+        let yScale = null;
+
+        d3.csv("./static/data/province.csv").then((data) => {
+          data = data.filter((d) => d["省份"] !== "湖北");
+          data = data.filter((d) => d["省份"] !== "总计");
+          data.forEach((d) => {
+            d["现有确诊"] = +d["现有确诊"];
+            d["日期"] = new Date(d["日期"]).getTime();
+          });
+          let provinces = {};
+          // 用省份作为 key
+          let allKeys = Array.from(new Set(data.map((d) => d["省份"])));
+          let allDates = Array.from(new Set(data.map((d) => d["日期"])));
+          allKeys.forEach((key) => (provinces[key] = []));
+          data.forEach((d) => {
+            provinces[d["省份"]].push(d);
+          });
+          console.log("provinces", provinces);
+          allKeys.forEach(
+            (key) =>
+              (provinces[key] = provinces[key].sort((a, b) => {
+                return a["日期"] - b["日期"];
+              }))
+          );
+
+          xScale = d3
+            .scaleTime()
+            .domain(
+              d3.extent(data, function (d) {
+                return d["日期"];
+              })
+            )
+            .range([0, innerWidth])
+            .nice();
+          // let xAxis = d3.axisBottom().scale(xScale).tickSize(10);
+
+          // nice 方法会让坐标轴的最后一个位置始终保持是有值的
+          // 比如原本 y 轴是到 900 多,    nice 会给最后的刻度设置为 1000
+
+          yScale = d3
+            .scaleLinear()
+            .domain([d3.max(data, yValue), d3.min(data, yValue)])
+            .range([0, innerHeight])
+            .nice();
+          console.log("allDates.length ", allDates);
+
+          const xAxis = d3
+            .axisBottom(xScale)
+            .ticks(Math.floor(allDates.length / 5))
+            .tickFormat(d3.timeFormat("%b-%d"))
+            .tickSize(-innerHeight);
+          const yAxis = d3.axisLeft(yScale).tickSize(-innerWidth);
+
+          const xAxisGroup = g.append("g").call(xAxis).attr("transform", `translate(${0}, ${innerHeight})`);
+          const yAxisGroup = g.append("g").call(yAxis);
+
+          /* path */
+          g.append("path").attr("id", "alterPath");
+
+          // 每秒换个省份的数据画出曲线
+          let index = 0;
+          const interval = setInterval(() => {
+            if (index >= allKeys.length - 1) {
+              clearInterval(interval);
+              return;
+            }
+            let key = allKeys[index];
+            renderUpdateAlter(provinces[key]);
+            index++;
+          }, 1000);
+        });
+
+        function renderUpdate(data) {
+          const line = d3
+            .line()
+            .x((d) => xScale(xValue(d)))
+            .y((d) => yScale(yValue(d)))
+            .curve(d3.curveCardinal.tension(0.5));
+        }
+
+        // data 方法是 joinData , 帮我们省略了 forEach ,
+        // 会自动把每个图元和数组中每个条目绑定, 去执行 enter 或 update
+        // 画出的是每个省的曲线图
+        function renderUpdateAlter(data) {
+          console.log("data", data);
+          const line = d3
+            .line()
+            .x((d) => xScale(xValue(d)))
+            .y((d) => yScale(yValue(d)))
+            .curve(d3.curveCardinal.tension(0.5));
+
+          d3.select("#alterPath")
+            .datum(data)
+            .attr("stroke", "green")
+            .attr("fill", "none")
+            .attr("stroke-width", 2.5)
+            .transition()
+            .duration(1000)
+            .attr("d", line);
+        }
+      </script>
+    </body>
+  </html>
+</html>

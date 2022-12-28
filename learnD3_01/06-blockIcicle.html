@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>blockIcicle</title>
+    <script src="./static/js/d3.min.js"></script>
+  </head>
+  <body>
+    <svg width="1600" height="1200" id="mainsvg" class="svgs" style="display: block; margin: auto"></svg>
+    <script>
+      const svg = d3.select("#mainsvg");
+      // 定位
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const margin = { left: 50, top: 50, right: 50, bottom: 50 };
+      const innerHeight = height - margin.top - margin.bottom;
+      const innerWidth = width - margin.left - margin.right;
+
+      // 容器
+      const g = svg.append("g").attr("id", "maingroup").attr("width", innerWidth).attr("height", innerHeight);
+
+      // 读取并整理层级数据
+      d3.json("./static/data/games.json").then((data) => {
+        const generator = d3.partition().size([innerHeight, innerWidth]);
+        const _data = d3
+          .hierarchy(data)
+          .sum((d) => d.popularity)
+          .sort((a, b) => b.popularity - a.popularity);
+        generator(_data); // 运行后不用赋值, _data 就是改变后的数据
+        console.log("data", _data);
+        render(_data);
+      });
+
+      function render(data) {
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+        const fill = (d) => {
+          if (!d.depth) return "#666666";
+          while (d.depth > 1) d = d.parent;
+          return color(d.data.name);
+        };
+
+        // 把数据提取出来画成方块 , 宽高已经是按 partition 算法计算出来了的, 画出来就是按大小生成宽高
+
+        g.selectAll(".dataRect")
+          .data(data.descendants())
+          .join("rect")
+          .attr("class", "dataRect")
+          .attr("x", (d) => d.y0)
+          .attr("y", (d) => d.x0)
+          .attr("width", (d) => d.y1 - d.y0)
+          .attr("height", (d) => d.x1 - d.x0)
+          .attr("fill", (d) => fill(d));
+
+        // 加入文字
+        g.selectAll(".dataText")
+          .data(data.descendants())
+          // .data(data.descendants().filter((d) => parseInt(d.x1) - parseInt(d.x0) > 50)) // 高度太小的就不输出文字了
+          .join("text")
+          .attr("class", "dataText")
+          .attr("text-anchor", "middle")
+          .attr("x", (d) => (d.y0 + d.y1) / 2)
+          .attr("y", (d) => (d.x0 + d.x1) / 2)
+          // .attr("x", (d) => (d.y0 + d.y1) / 2)
+          // .attr("y", (d) => (d.x0 + d.x1) / 2)
+          .attr("dy", "0.35em")
+          .attr("font-size", "0.8rem")
+          // 注意这里是 d.data.name ,  d.data 是原始属性
+          // 有的是 parent 类似分类节点则没有 popularity 属性, 但是有 sum 的统计数据 value
+          .text((d) => `${d.data.name}, -- ${d.data.popularity ? d.data.popularity : d.value}`);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>force</title>
+	</head>
+	<body>
+		<svg width="1600" height="800" id="mainsvg" class="svgs"></svg>
+		<script src="./d3@7.js"></script>
+		<script>
+			const svg = d3.select("#mainsvg")
+			const width = svg.attr("width")
+			const height = svg.attr("height")
+			let links = [
+				{ source: "0", target: "3", weight: 1 },
+				{ source: "3", target: "0", weight: 1 },
+				{ source: "4", target: "1", weight: 1 },
+				{ source: "1", target: "2", weight: 0.5 },
+			]
+
+			// let nodes = new Array(links.length).fill({})
+			let nodes = []
+			for (let i = 0; i < 6; i++) {
+				nodes.push({ id: `${i}` })
+			}
+			let renderLinks
+			let renderCircles
+
+			// [x] 初始化图元, 不用关心位置等, 只需要初始化即可
+			function renderInit() {
+				renderLinks = svg
+					.selectAll("line")
+					.data(links, (d) => [d.source, d.target])
+					.join("line")
+					.attr("stroke", "black")
+					.attr("stroke-width", 0.5)
+					.attr("opacity", 0.8)
+
+				renderCircles = svg
+					.selectAll("circle")
+					.data(nodes, (d) => d.id)
+					.join("circle")
+					.attr("r", 5)
+					.attr("fill", "blue")
+					.text((d) => d.id)
+			}
+
+			function strength(link) {
+				return link.weight * 0.01
+			}
+
+			function distance(link) {
+				return 200 * (1 / link.weight)
+			}
+
+			// [x] 对 path 进行连接
+			function ticked() {
+				renderCircles.attr("cx", (d) => d.x).attr("cy", (d) => d.y)
+
+				renderLinks
+					.attr("x1", (d) => d.source.x)
+					.attr("y1", (d) => d.source.y)
+					.attr("x2", (d) => d.target.x)
+					.attr("y2", (d) => d.target.y)
+			}
+			renderInit()
+
+			// simulation = d3
+			// 	.forceSimulation()
+			// 	.force("charge", d3.forceManyBody())
+			// 	.force("center", d3.forceCenter(width / 2, height / 2))
+			// 	// .force("link", d3.forceLink(links).strength(0.1).distance(100))
+			// 	.force(
+			// 		"link",
+			// 		d3.forceLink().id((d) => d.id)
+			// 	)
+			// 	// .alphaTarget(0.1)
+			// 	.on("tick", ticked)
+			// simulation.alpha(1).restart().tick()
+
+			setTimeout(() => {
+				const simulation = d3
+					.forceSimulation()
+					.force("charge", d3.forceManyBody())
+					.force(
+						"link",
+						d3.forceLink().id((d) => d.id)
+					)
+					.force("center", d3.forceCenter(width / 2, height / 2))
+					// .force("x", d3.forceX())
+					// .force("y", d3.forceY())
+					.on("tick", ticked)
+				simulation.nodes(nodes)
+				simulation.force("link").links(links)
+				simulation.alpha(1).restart().tick()
+			})
+		</script>
+	</body>
+</html>
