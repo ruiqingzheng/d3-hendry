@@ -37,23 +37,24 @@
       d3.json('https://geo.datav.aliyun.com/areas_v2/bound/100000_full.json').then((data) => {
         console.log('data', data)
         // projection.fitSize([innerWidth, innerHeight], data.features)
-       svg.selectAll("g")
-            .data(data.features)
-            .enter()
-            .append("g")
-            .append("path")
-            .attr('d',path)//使用地理路径生成器
-            .attr("stroke","#000")
-            .attr("stroke-width",1)
-            .attr("fill", function(d,i){
-                return color[i%10];
-            })
-            .on("mouseover",function(d,i){
-                d3.select(this).attr('opacity', 0.5);
-            })
-            .on("mouseout",function(d,i){
-                d3.select(this).attr('opacity', 1);
-            });
+        svg
+          .selectAll('g')
+          .data(data.features)
+          .enter()
+          .append('g')
+          .append('path')
+          .attr('d', path) //使用地理路径生成器
+          .attr('stroke', '#000')
+          .attr('stroke-width', 1)
+          .attr('fill', function (d, i) {
+            return color[i % 10]
+          })
+          .on('mouseover', function (d, i) {
+            d3.select(this).attr('opacity', 0.5)
+          })
+          .on('mouseout', function (d, i) {
+            d3.select(this).attr('opacity', 1)
+          })
 
         svg
           .selectAll('g')
