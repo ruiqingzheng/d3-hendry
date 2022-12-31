@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body>
+		<canvas id="canvas" width="1000" height="1000"></canvas>
+		<script src="./d3.v7.min.js"></script>
+		<script>
+			const height = d3.select("#canvas").attr("height")
+			const width = d3.select("#canvas").attr("width")
+
+			const n = 12
+
+			color = d3.scaleOrdinal(
+				d3.range(n),
+				["transparent"].concat(d3.schemeTableau10)
+			)
+
+			function generateData() {
+				const k = width / 200
+				const r = d3.randomUniform(k, k * 4)
+				return Array.from({ length: 200 }, (_, i) => ({
+					r: r(),
+					group: i && (i % n) + 1,
+				}))
+			}
+
+			const data = generateData()
+			const context = document.querySelector("#canvas").getContext("2d")
+
+			const nodes = data.map(Object.create)
+
+			// console.log("nodes", nodes, "data", data)
+			console.log("nodes", nodes)
+
+			const simulation = d3
+				.forceSimulation(nodes)
+				.alphaTarget(0.3)
+				.velocityDecay(0.1)
+				.force("x", d3.forceX().strength(0.1))
+				.force("y", d3.forceY().strength(0.1))
+				.force(
+					"collide",
+					d3 // [x] 设置节点之间碰撞不重叠
+						.forceCollide()
+						.radius((d) => d.r + 1)
+						.iterations(300)
+				)
+				.force(
+					"charge",
+					d3
+						.forceManyBody() // [x] 设置吸引力或斥力, 如果是第0个节点那么strength为负数, 则是斥力, 否则都是0
+						.strength((d, i) => (i ? 0 : (-width * 4) / 3))
+				)
+				.on("tick", ticked)
+
+			//[x] 设置第0个元素的位置为根据鼠标位置计算出来的固定位置, 这里需要减去宽高的一半是因为tick初始化画图每次都是从这个地方(宽高的一半)开始
+			//[x] 且 forceManyBody 里面设置了第0个元素和其他元素有斥力, 于是鼠标移动,元素0移动到鼠标位置, 且推开其他元素
+			d3.select(context.canvas)
+				.on("touchmove", (event) => event.preventDefault())
+				.on("pointermove", pointed)
+
+			function pointed(event) {
+				const [x, y] = d3.pointer(event)
+				// [x] 当设置了node的fx , fy 属性,  那么这个节点则最终会向fx, fy位置运动且最后在这个地方静止
+				nodes[0].fx = x - width / 2
+				nodes[0].fy = y - height / 2
+				console.log("fx,fy", nodes[0].fx, nodes[0].fy)
+			}
+
+			function ticked() {
+				context.clearRect(0, 0, width, height)
+				context.save()
+				// [x] 每次都是从宽高的一半开始画图
+				context.translate(width / 2, height / 2)
+				for (const d of nodes) {
+					context.beginPath()
+					context.moveTo(d.x + d.r, d.y)
+					context.arc(d.x, d.y, d.r, 0, 2 * Math.PI)
+					context.fillStyle = color(d.group)
+					context.fill()
+				}
+				context.restore()
+			}
+		</script>
+	</body>
+</html>
