@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      circle {
+        fill: cadetblue;
+      }
+    </style>
+    <title>force-7-drag-2</title>
+  </head>
+  <body>
+    <svg width="1500" height="800" id="svg"></svg>
+    <script src="./d3.v7.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.2.0/d3.min.js"></script> -->
+    <script>
+      // 参考 https://www.d3indepth.com/force-layout/#forcelink
+      // https://codepen.io/pen?&prefill_data_id=8616771d-3f8f-4cec-84b4-7f2c8ba14cfe
+
+      const svg = d3.select("#svg");
+      const margin = { top: 50, left: 50, right: 50, bottom: 50 };
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const inner_width = width - margin.left - margin.right;
+      const inner_height = height - margin.top - margin.bottom;
+      const g = svg
+        .append("g")
+        .attr("id", "mainGroup")
+        .attr("width", inner_width)
+        .attr("height", inner_height)
+        .attr("transform", `translate(${margin.left} , ${margin.top})`);
+
+      const nodesCount = 50;
+      // [x] r-- 创建自定义半径, category -- 分类
+      // [x] name 节点 label
+      let nodes = Array.from({ length: nodesCount })
+        .fill(Object.create({}))
+        .map((d, i) => ({
+          radius: Math.random() * 30,
+          category: i % 3,
+          name: i.toString(),
+        }));
+
+      // [x] links 定义节点是怎么连接的, 假如需要画一个闭环
+      const links = [];
+      for (let i = 0; i < nodesCount; i++) {
+        current = i;
+        next = current + 1;
+        // 判断最后一个元素, 那么连接到首部
+        if (i === nodesCount - 1) {
+          next = 0;
+        }
+        links.push({ source: current, target: next });
+      }
+
+      // [x] 预定义分类 y 坐标尺
+      // const xCenter = [100, 400, 700];
+      const yScale = d3.scaleLinear().domain([0, 1]).range([0, 200]);
+      const xScale = d3.scaleLinear().domain([0, 1]).range([0, 100]);
+
+      // [x] 预定义分类颜色
+      const cateColors = ["orange", "purple", "blue"];
+
+      const simulation = d3
+        // 有 links 那么必须在这里调用 nodes , 不能在后面调用 nodes 方法来初始化 nodes
+        .forceSimulation(nodes)
+        .force("charge", d3.forceManyBody().strength(-150)) // 设置点之间的引力
+        // .force('link', d3.forceLink().links(links))
+        .force("center", d3.forceCenter(inner_width / 2, inner_height / 2)) // 引力, 整体来说向某个点集中
+        // [x] forceLink 让 links 元素连接
+        .force("link", d3.forceLink().links(links).distance(30))
+        .force(
+          "collision",
+          d3.forceCollide().radius((d) => d.radius + 5)
+        )
+        // [x] 元素的分类, forceY 通过坐标尺计算 y 的值, 于是他们在 y 轴方向不同的高度
+        .force(
+          "categoryYForce",
+          // d3.forceY().y((d) => yScale(d.category))
+          d3.forceY().y((d) => 200)
+        )
+        // [x] 元素的分类,  forceX 固定值, 那么 x 轴方向都在同一个位置
+        .force(
+          "categoryXForce",
+          d3.forceX().x((d) => xScale(d.category))
+          // d3.forceX().x((d) => 200)
+        )
+        .on("tick", ticked);
+
+      // simulation.nodes(nodes);
+      // simulation.on("tick", ticked);
+      console.log("nodes", nodes);
+      console.log("links", links);
+
+      const node = g.selectAll("a").data(nodes).join("a").call(drag(simulation));
+
+      const circle = node
+        .append("circle")
+        .attr("r", (d) => d.radius)
+        // .attr("fill", (d) => cateColors[d.cateColors])
+          .style("fill", (d) => cateColors[d.category]);
+
+      const text = node
+        .append("text")
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .text((d) => d.name);
+
+      function ticked() {
+        // update nodes
+        circle
+          .attr("cx", function (d) {
+            return d.x;
+          })
+          .attr("cy", function (d) {
+            return d.y;
+          });
+
+        // update text
+        text
+          .attr("x", function (d) {
+            return d.x;
+          })
+          .attr("y", function (d) {
+            return d.y;
+          })
+          .attr("dy", function (d) {
+            return d.radius / 3;
+          })
+          // .attr("dx", 1)
+          .attr("font-size", (d) => 0.9 * d.radius)
+          .attr("fill", "white")
+          .attr("text-anchor", "middle");
+
+        // update links
+        g.selectAll("line")
+          .data(links)
+          .join("line")
+          .attr("x1", (d) => d.source.x)
+          .attr("y1", (d) => d.source.y)
+          .attr("x2", (d) => d.target.x)
+          .attr("y2", (d) => d.target.y)
+          .attr("stroke", "black")
+          .attr("stroke-width", 1);
+      }
+
+      function drag(simulation) {
+        function dragstarted(event) {
+          if (!event.active) simulation.alphaTarget(0.1).restart();
+          event.subject.fx = event.subject.x;
+          event.subject.fy = event.subject.y;
+          console.log('event.subject', event.subject)
+        }
+
+        function dragged(event) {
+          event.subject.fx = event.x;
+          event.subject.fy = event.y;
+        }
+
+        function dragended(event) {
+          if (!event.active) simulation.alphaTarget(0);
+          event.subject.fx = null;
+          event.subject.fy = null;
+        }
+
+        return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
+      }
+    </script>
+  </body>
+</html>
