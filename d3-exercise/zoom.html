@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>zoom</title>
+  </head>
+  <body>
+    <svg width="1000" height="800" id="svg" />
+
+    <script src="./d3.v7.min.js"></script>
+    <script>
+      const svg = d3.select('#svg').style('border', '1px solid green')
+
+      const width = svg.attr('width')
+      const height = svg.attr('height')
+
+      const margin = { top: 50, left: 50, bottom: 50, right: 50 }
+      const inner_height = height - margin.top - margin.bottom
+      const inner_width = width - margin.left - margin.right
+
+      const g = svg.append('g').attr('width', inner_width).attr('height', inner_height).attr('transform', `translate(${margin.left}, ${margin.top})`)
+
+      const originalCircle = { cx: 100, cy: 100, radius: 20 }
+
+      const circle = g.append('circle').attr('class', 'circle').attr('cx', originalCircle.cx).attr('cy', originalCircle.cy).attr('r', originalCircle.radius).style('fill', '#61a3a9').style('opacity', 0.5)
+
+      const xAxisScale = d3.scaleLinear().domain([0, inner_width]).range([0, inner_width])
+      const yAxisScale = d3.scaleLinear().domain([0, inner_height]).range([inner_height, 0])
+
+      const yAxis = g.append('g').call(d3.axisLeft(yAxisScale)).attr('id', 'yAxis')
+      const xAxis = g.append('g').call(d3.axisBottom(xAxisScale)).attr('transform', `translate(${0}, ${inner_height})`).attr('id', 'xAxis')
+
+      function zoomFunction() {
+        var newX = d3.event.transform.rescaleX(x)
+        var newY = d3.event.transform.rescaleY(y)
+
+        xAxis.call(d3.axisBottom(newX))
+        yAxis.call(d3.axisLeft(newY))
+
+        g.selectAll('circle')
+          .attr('cx', (d, i) => newX(d.cx))
+          .attr('cy', (d, i) => newY(d.cy))
+      }
+
+      d3.zoom().scaleExtent([0.2, 10]).extent([0, 0], [inner_width, inner_height]).on('zoom', zoomFunction)
+    </script>
+  </body>
+</html>
