@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      circle {
+        fill: cadetblue;
+      }
+    </style>
+    <title>force-3</title>
+  </head>
+  <body>
+    <svg width="1000" height="800" id="svg"></svg>
+    <script src="./d3.v7.min.js"></script>
+    <script>
+      // 参考 https://www.d3indepth.com/force-layout/#forcelink
+      // https://codepen.io/pen?&prefill_data_id=8616771d-3f8f-4cec-84b4-7f2c8ba14cfe
+
+      const svg = d3.select("#svg");
+      const margin = { top: 50, left: 50, right: 50, bottom: 50 };
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const inner_width = width - margin.left - margin.right;
+      const inner_height = height - margin.top - margin.bottom;
+      const g = svg
+        .append("g")
+        .attr("id", "mainGroup")
+        .attr("width", inner_width)
+        .attr("height", inner_height)
+        .attr("transform", `translate(${margin.left} , ${margin.top})`);
+
+      const nodesCount = 100;
+      // [x] 创建自定义半径
+      // [x] 设置分类 category 属性
+      let nodes = Array.from({ length: nodesCount })
+        .fill(Object.create({}))
+        .map((d, i) => ({
+          radius: Math.random() * 30,
+          category: i % 3,
+        }));
+
+      // [x] 预定义分类 x 坐标区域
+      const xCenter = [100, 400, 700];
+      // [x] 预定义分类颜色
+      const cateColors = ["orange", "purple", "blue"];
+
+      const simulation = d3
+        .forceSimulation()
+        .force("charge", d3.forceManyBody().strength(10)) // 设置点之间的引力
+        .force("center", d3.forceCenter(inner_width / 2, inner_height / 2)) // 引力, 整体来说向某个点集中
+        .force(
+          "collision",
+          d3.forceCollide().radius((d) => d.radius + 5)
+        )
+        // [x] 元素的分类,  forceX
+        .force(
+          "categoryForce",
+          d3.forceX().x((d) => xCenter[d.category])
+        );
+
+      simulation.nodes(nodes);
+
+      simulation.on("tick", ticked);
+      console.log("nodes", nodes);
+
+      function ticked() {
+        g.selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", (d) => d.radius)
+          .attr("cx", (d) => d.x)
+          .attr("cy", (d) => d.y)
+          .style("fill", (d) => cateColors[d.category]);
+      }
+    </script>
+  </body>
+</html>

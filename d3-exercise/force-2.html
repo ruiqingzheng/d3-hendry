@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      circle {
+        fill: cadetblue;
+      }
+    </style>
+    <title>force-2</title>
+  </head>
+  <body>
+    <svg width="1000" height="800" id="svg"></svg>
+    <script src="./d3.v7.min.js"></script>
+    <script>
+      // 参考 https://www.d3indepth.com/force-layout/#forcelink
+      // https://codepen.io/pen?&prefill_data_id=8616771d-3f8f-4cec-84b4-7f2c8ba14cfe
+
+      const svg = d3.select("#svg");
+      const margin = { top: 50, left: 50, right: 50, bottom: 50 };
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const inner_width = width - margin.left - margin.right;
+      const inner_height = height - margin.top - margin.bottom;
+      const g = svg
+        .append("g")
+        .attr("id", "mainGroup")
+        .attr("width", inner_width)
+        .attr("height", inner_height)
+        .attr("transform", `translate(${margin.left} , ${margin.top})`);
+
+      // [x] 注意 nodes 在被处理后 x, y, vx, vy 的值是否正常
+      // [x] 如果没有 map 方法调用去生成不同的对象, 那么 nodes 值 index 都是 4, 而且 vx, vy 也有问题
+      // [x] 总之需要确定 nodes 数组每个元素的属性都正常被创建
+
+      const nodesCount = 100;
+      // [x] 创建自定义半径
+      let nodes = Array.from({ length: nodesCount })
+        .fill(Object.create({}))
+        .map(() => ({
+          radius: Math.random() * 30,
+        }));
+
+
+      const simulation = d3
+        .forceSimulation()
+        .force("charge", d3.forceManyBody().strength(10)) // 设置点之间的引力
+        .force("center", d3.forceCenter(inner_width / 2, inner_height / 2)) // 引力, 整体来说向某个点集中
+        // [x] forceCollide 的属性配置 radius 可以设置元素之间的间隔距离
+        .force("collision", d3.forceCollide().radius(d => d.radius + 5))
+
+      simulation.nodes(nodes);
+
+      simulation.on("tick", ticked);
+      console.log("nodes", nodes);
+
+      function ticked() {
+        g.selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", (d) => d.radius)
+          .attr("cx", (d) => d.x)
+          .attr("cy", (d) => d.y);
+      }
+    </script>
+  </body>
+</html>
