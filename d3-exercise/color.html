@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <meta charset="utf-8" />
+    <!-- Load d3.js -->
+    <script src="./d3.v7.min.js"></script>
+    <!-- Create a div where the circle will take place -->
+    <div id="dataviz_axisZoom"></div>
+  </head>
+  <body>
+    <svg class="chart"></svg>
+    <script>
+      /***
+       *  keywords: svg gradient circle
+       * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/radialGradient
+       * https://juejin.cn/post/6844904037486166023
+       * */
+
+      const svg = d3.select('.chart')
+      svg.attr('width', 1000).attr('height', 800).style('border', '1px solid red')
+      const g = svg.append('g').attr('id', 'mainGroups')
+
+      const defs = svg.append('defs') //插入defs
+      const linearGradient = defs //defs中插入<linearGradient>
+        .append('linearGradient')
+        .attr('id', 'gradient') //设置对应id
+      linearGradient //linearGradient中插入stop元素
+        .append('stop')
+        .attr('offset', '0%') //设置坡度，下同
+        .attr('stop-color', d3.interpolateBlues(0)) //设置对应颜色，下同
+      linearGradient.append('stop').attr('offset', '100%').attr('stop-color', d3.interpolateBlues(1))
+
+      // 定义圆形渐变
+      const radialGradient = defs.append('radialGradient').attr('id', 'radialGradient')
+      radialGradient.append('stop').attr('offset', '10%').attr('stop-color', 'gold')
+      radialGradient.append('stop').attr('offset', '95%').attr('stop-color', 'red')
+
+      const radialGradient2 = defs.append('radialGradient').attr('id', 'radialGradient2')
+      radialGradient2.append('stop').attr('offset', '50%').attr('stop-color', 'rgb(31,51,33)')
+      // radialGradient2.append('stop').attr('offset', '10%').attr('stop-color', 'black')
+      radialGradient2.append('stop').attr('offset', '80%').attr('stop-color', 'rgb(29,130,41)')
+      radialGradient2.append('stop').attr('offset', '99%').attr('stop-color', 'rgb(28,196,48)')
+
+      const rect = g //插入rect
+        .append('rect')
+        .attr('height', '20')
+        .attr('width', '150')
+        .style('fill', "url('#gradient')") //用linearGradient填充矩形
+
+      const circle = g.append('circle').attr('cx', 100).attr('cy', 100).attr('r', 50).style('fill', 'url(#radialGradient)').style('opacity', 0.5)
+      const circle2 = g.append('circle').attr('cx', 250).attr('cy', 250).attr('r', 50).style('fill', 'url(#radialGradient2)').style('opacity', 0.9)
+    </script>
+  </body>
+</html>
