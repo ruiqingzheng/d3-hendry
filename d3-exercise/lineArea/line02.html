@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>line02</title>
+  </head>
+  <body>
+    <!-- Create a div where the graph will take place -->
+    <div id="my_dataviz"></div>
+    <!-- <script src="https://d3js.org/d3.v4.js"></script> -->
+    <!-- <script src="../d3.v5/d3.min.js"></script> -->
+
+    <!--参考: https://observablehq.com/@d3/d3v6-migration-guide (d3.nest becomes d3.group) -->
+    <!-- https://d3-graph-gallery.com/graph/line_several_group.html -->
+    <script src="../d3.v7.min.js"></script>
+    <script>
+      // set the dimensions and margins of the graph
+      var margin = { top: 10, right: 30, bottom: 30, left: 60 },
+        width = 460 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+      // append the svg object to the body of the page
+      var svg = d3
+        .select("#my_dataviz")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      //Read the data
+      d3.csv(
+        "https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/5_OneCatSevNumOrdered.csv"
+      ).then(function (data) {
+        // [x] d3v7 group 方法对应v4 版本的 nest, 但返回的是 map
+        // [x] 访问通过  groupData.keys 返回的是 map 的所有 key的数组
+        // [x] 但是 对于每条单独的记录, 里面的字段, 通过 groupData.values 访问
+        // [x] Array.from(d.values())[0]  对应的是本条记录的 key 值
+        // [x] Array.from(d.values())[1]  对应的是本条记录的 value
+
+        var sumstat = d3.group(data, (d) => d.name); // nest function allows to group the calculation per level of a factor
+
+        console.log("sumstat", sumstat, "data:", data);
+
+        // Add X axis --> it is a date format
+        var x = d3
+          .scaleLinear()
+          .domain(
+            d3.extent(data, function (d) {
+              return d.year;
+            })
+          )
+          .range([0, width]);
+
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x).ticks(5));
+
+        // Add Y axis
+        var y = d3
+          .scaleLinear()
+          .domain([
+            0,
+            d3.max(data, function (d) {
+              return +d.n;
+            }),
+          ])
+          .range([height, 0]);
+        svg.append("g").call(d3.axisLeft(y));
+
+        const line = d3
+          .line()
+          .x((d) => x(parseInt(d.year)))
+          .y((d) => y(parseInt(+d.n)));
+
+        const cates = Array.from(sumstat.keys());
+        console.log("cates", cates);
+        const color = d3
+          .scaleOrdinal()
+          .domain(cates)
+          .range(["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999"]);
+
+        // Draw the line
+        svg
+          .selectAll(".line")
+          .data(sumstat)
+          .enter()
+          .append("path")
+          .attr("fill", "none")
+          .attr("stroke", function (d) {
+            return color(Array.from(d.values())[0]);
+          })
+          .attr("stroke-width", 1.5)
+          .attr("d", (d) => line(Array.from(d.values())[1]));
+      });
+    </script>
+  </body>
+</html>
