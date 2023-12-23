@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <svg width="1500" height="800" id="svg"></svg>
+    <script src="./d3.min.js"></script>
+
+    <script type="module">
+      var data = {
+        // id: v4(),
+        name: 'Lucas Grey',
+        children: [
+          {
+            // id: v4(),
+            name: 'Mary Grey',
+            children: [
+              {
+                // id: v4(),
+                name: 'Fred Smith',
+                children: null,
+              },
+              {
+                // id: v4(),
+                name: 'Jane Smith',
+                children: null,
+              },
+            ],
+          },
+          {
+            // id: v4(),
+            name: 'Json Grey',
+            children: [
+              {
+                // id: v4(),
+                name: 'Sean Grey',
+                children: null,
+              },
+              {
+                // id: v4(),
+                name: 'Jessica Grey',
+                children: [
+                  {
+                    // id: v4(),
+                    name: 'Joseph Wetter',
+                    children: null,
+                  },
+                  {
+                    // id: v4(),
+                    name: 'John Wetter',
+                    children: null,
+                  },
+                  {
+                    // id: v4(),
+                    name: 'Laura Wetter',
+                    children: null,
+                  },
+                ],
+              },
+              {
+                // id: v4(),
+                name: 'Hannah Grey',
+                children: null,
+              },
+            ],
+          },
+          {
+            // id: v4(),
+            name: 'Peter Grey',
+            children: [],
+          },
+        ],
+      }
+
+      //[x] 设置绘画区域, 整理好tree结构的数据后, 如果自己来画svg难点是计算每个节点位置, 每个线条的位置
+      //[x] 但这个步骤框架已经帮我们做好了, 所以把数据交给框架调用hierarchy方法计算得到root数据,
+      //[x] root是hierarchy结构的数据, 调用tree(root)后, 就确定了每个节点位置和每个线条的位置,根据root画每个节点和连线即可成为导图
+      const width = 928
+
+      const root = d3.hierarchy(data)
+      const dx = 50
+      const dy = width / (root.height + 1)
+
+      // Create a tree layout.
+      const tree = d3.tree().nodeSize([dx, dy])
+
+      // Sort the tree and apply the layout.
+      root.sort((a, b) => d3.ascending(a.data.name, b.data.name))
+      tree(root)
+
+      // console.log(root)
+      // Compute the extent of the tree. Note that x and y are swapped here
+      // because in the tree layout, x is the breadth, but when displayed, the
+      // tree extends right rather than down.
+      let x0 = Infinity
+      let x1 = -x0
+      root.each((d) => {
+        if (d.x > x1) x1 = d.x
+        if (d.x < x0) x0 = d.x
+      })
+
+      // Compute the adjusted height of the tree.
+      const height = x1 - x0 + dx * 2
+
+      // 画布
+      const svg = d3
+        .select('#svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [-dy / 3, x0 - dx, width, height])
+        .attr('style', 'max-width: 100%; height: auto; font: 10px sans-serif;')
+
+      // 画连接线
+      const link = svg
+        .append('g')
+        .attr('fill', 'none')
+        .attr('stroke', '#555')
+        .attr('stroke-opacity', 0.4)
+        .attr('stroke-width', 1.5)
+        .selectAll()
+        .data(root.links())
+        .join('path')
+        .attr(
+          'd',
+          d3
+            .linkHorizontal()
+            .x((d) => d.y)
+            .y((d) => d.x)
+        )
+
+      const node = svg
+        .append('g')
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-width', 3)
+        .selectAll()
+        //[x] .data(root.descendants()) , 树状结构的所有节点数据绑定到选择集，以便之后的 D3.js 操作能够使用这些数据
+        .data(root.descendants())
+        //[x] join 方法, 根据数据(类似每次循环), 创建新的元素，更新已有元素，以及删除不再需要的元素
+        .join('g')
+        // 根据框架对数据处理后计算出来的x,y值 ,对每个node节点位移到x,y 位置
+        .attr('transform', (d) => `translate(${d.y},${d.x})`)
+
+      node
+        .append('rect')
+        // 每个节点矩形宽高
+        .attr('width', 90)
+        .attr('height', 30)
+        .attr('fill', (d) => (d.children ? ' rgb(37 99 235)' : 'rgb(147 197 253)'))
+        // 移动矩形位置适应文字
+        .attr('transform', (d) => `translate(-5,-15)`)
+
+      node
+        .append('text')
+        .attr('dy', '0.31em')
+        // 设置文字相对node的x的位置, 都是6个px
+        .attr('x', (d) => (d.children ? 6 : 6))
+        .attr('text-anchor', 'start')
+        // 设置文字颜色, 有children则白色文字, 没有children 则黑色显示
+        .attr('fill', (d) => (d.children ? 'white' : 'rgb(38 38 38)'))
+        .text((d) => d.data.name)
+        .clone(true)
+        .lower()
+        // 文字描边效果 , 文字白色描边, 几乎看不出效果, 可以删除
+        .attr('stroke', 'white')
+    </script>
+  </body>
+</html>

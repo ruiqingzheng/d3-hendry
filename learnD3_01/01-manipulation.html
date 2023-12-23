@@ -4,12 +4,23 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        /* padding: 0; */
+        margin: 0;
+        /* box-sizing: border-box; */
+      }
+    </style>
     <title>Document</title>
   </head>
   <body>
+    <!--[x] svg 容器位置从0,0开始 , 我们把group 位置移动到100, 100 , 下面所有的子元素都从100 , 100 开始作为起点  -->
+    <!--[x] 也就是说, group 下面的子节点的x, y 或者 cx 这些坐标都是相对父元素的位置 -->
     <svg width="1600" height="800" id="mainsvg" class="svgs">
       <g id="maingroup" transform="translate(100, 100)">
+        <!-- [x] cx=0 实际对应的位置是dom的100, 100, 因为父节点 translate 位移到了100, 100  -->
         <circle id="circle1" stroke="black" r="66" fill="#4B8E6F" cx="0"></circle>
+        <!-- [x] x=100 , y=-100 , 实际上在dom中x=100 + 100 , y=100-100 , 所以dom坐标位置是 200, 0  -->
         <rect id="rect1" class="class2" stroke="black" height="200" width="66" fill="#ff8603" x="100" y="-100"></rect>
         <rect id="rect2" class="class1" stroke="black" height="200" width="66" fill="#ffde1d" x="200" y="-100"></rect>
         <rect id="rect3" class="class1" stroke="black" height="200" width="66" fill="#7289AB" x="300" y="-100"></rect>
